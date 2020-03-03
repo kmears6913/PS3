@@ -16,8 +16,8 @@ class Node{
 		
 	private int x;
 	private int y;
-	private double cost;
-	private double totalcost;
+	private double actualCost;
+	private double estimatedactualCost;
 //	List<Node> list;
 	Node next;
 	Node parent;
@@ -27,8 +27,8 @@ class Node{
 	public Node(int x, int y) {
 		this.x = x - (x%10);
 		this.y = y - (y%10);
-		this.cost = 0;
-		this.totalcost = Integer.MAX_VALUE;
+		this.actualCost = 0;
+		this.estimatedactualCost = Integer.MAX_VALUE;
 		this.visited = false;
 //		this.list = new ArrayList<Node>();
 	}
@@ -44,17 +44,17 @@ class Node{
 	public void setY(int y) {
 		this.y = y;
 	}
-	public double getCost() {
-		return cost;
+	public double getactualCost() {
+		return actualCost;
 	}
-	public void setCost(double cost) {
-		this.cost = cost;
+	public void setactualCost(double actualCost) {
+		this.actualCost = actualCost;
 	}
-	public double getTotalcost() {
-		return totalcost;
+	public double getestimatedactualCost() {
+		return estimatedactualCost;
 	}
-	public void setTotalcost(double totalcost) {
-		this.totalcost = totalcost;
+	public void setestimatedactualCost(double estimatedactualCost) {
+		this.estimatedactualCost = estimatedactualCost;
 	}
 	public Node getNext() {
 		return next;
@@ -77,11 +77,11 @@ class Node{
 
 
 }
-class NodeCostComp implements Comparator<Node>{
+class NodeactualCostComp implements Comparator<Node>{
 	 
     @Override
     public int compare(Node n1, Node n2) {
-        if(n1.getTotalcost() > n2.getTotalcost()){
+        if(n1.getestimatedactualCost() > n2.getestimatedactualCost()){
             return 1;
         } else {
             return -1;
@@ -89,13 +89,15 @@ class NodeCostComp implements Comparator<Node>{
     }
 }
 class GameAgent {
-	static Comparator<Node> costSorter = Comparator.comparing(Node::getCost); 
-	static PriorityQueue<Node> pQ = new PriorityQueue<Node>( new NodeCostComp() );
+	static Comparator<Node> actualCostSorter = Comparator.comparing(Node::getactualCost); 
+	static PriorityQueue<Node> pQ = new PriorityQueue<Node>( new NodeactualCostComp() );
 	static HashMap<String, Node> Nodes = new HashMap<String, Node>();
 	static Stack<Node> st = new Stack<Node>();
 	static Stack<Node> st1;
 	static Node destHold;
-	//static TreeMap<Node, Node> pQ = new TreeMap<Node, Node>(new NodeCostComp());
+	
+	static int ctr;
+	//static TreeMap<Node, Node> pQ = new TreeMap<Node, Node>(new NodeactualCostComp());
 	/*
 	 * Problem Set 3
 	 * 
@@ -106,7 +108,7 @@ class GameAgent {
 	public void drawPlan(Graphics g, GameModel m) {
 		g.setColor(Color.red);
 		g.drawLine((int)m.getX(), (int)m.getY(), (int)m.getDestXValue(), (int)m.getDestYValue());
-		PriorityQueue<Node> pQ1 = new PriorityQueue<Node>( new NodeCostComp() );
+		PriorityQueue<Node> pQ1 = new PriorityQueue<Node>( new NodeactualCostComp() );
 		st1 = (Stack<Node>) st.clone();
 		pQ1.addAll(pQ);
 		Node n;
@@ -162,6 +164,9 @@ class GameAgent {
 			Nodes.putIfAbsent(key, dest);
 			destHold = dest;
 			System.out.println("X " + dest.getX() + " Y "+ dest.getY());
+			
+			ctr = 0;
+			
 			if(e.getButton() == 1)
 				UCS(n, m, dest);
 			else if(e.getButton() == 3)
@@ -170,14 +175,15 @@ class GameAgent {
 
 		}
 	}
-	//Uniform Cost search
+	//Uniform actualCost search
 	public void UCS(Node n, GameModel m, Node dest) {
 		n.setVisited(true);
-		n.setTotalcost(0);
+		n.setestimatedactualCost(0);
 		pQ.add(n);
 		
 		while(!pQ.isEmpty())
 		{
+			ctr++;
 			Node child = pQ.poll();
 //			System.out.println(pQ);
 			if(child.getX() == dest.getX() && child.getY() == dest.getY())
@@ -188,7 +194,7 @@ class GameAgent {
 					st.push(child.parent);
 					child = child.parent;
 				}
-				System.out.println(child.getX() + ", " + child.getY());
+				System.out.println("Counter:\t"+ ctr);
 
 //				System.out.println("FOUND");
 				break;
@@ -198,24 +204,24 @@ class GameAgent {
 		}
 	}
 	
-	public void checkCost(Node parent,Node child, GameModel m)
+	public void checkactualCost(Node parent,Node child, GameModel m)
 	{
-		double distance = (float)(Math.sqrt(Math.pow((parent.getX() - child.getX()),2) 
+		double distance = (Math.sqrt(Math.pow((parent.getX() - child.getX()),2) 
 				+ Math.pow((parent.getY() - child.getY()),2)));		
 		double speed = m.getSpeedOfTravel(child.getX(), child.getY());
-		double costFromParent = distance/speed + parent.getTotalcost();
+		double actualCostToCurrent = distance/speed + parent.getestimatedactualCost();
 		
 		if(!pQ.contains(child) && child.isVisited() == false)
 		{
 //			System.out.println("true");
-			child.setTotalcost(costFromParent);
+			child.setestimatedactualCost(actualCostToCurrent);
 			child.setParent(parent);
 			pQ.add(child);
 		}
 			
-		else if(costFromParent < child.getTotalcost())
+		else if(actualCostToCurrent < child.getestimatedactualCost())
 		{
-			child.setTotalcost(costFromParent);
+			child.setestimatedactualCost(actualCostToCurrent);
 			child.setParent(parent);
 		}
 		
@@ -232,7 +238,7 @@ class GameAgent {
 			Node b = new Node(x, n.getY());
 			Nodes.putIfAbsent(key, b);
 			b = Nodes.get(key);
-			checkCost(n, b, m);
+			checkactualCost(n, b, m);
 		}
 		//right node
 		if(n.getX() <= 1180)
@@ -243,7 +249,7 @@ class GameAgent {
 			Node b = new Node(x, n.getY());
 			Nodes.putIfAbsent(key, b);
 			b = Nodes.get(key);
-			checkCost(n, b, m);
+			checkactualCost(n, b, m);
 		}
 		//top node
 		if(n.getY() >= 20)
@@ -254,7 +260,7 @@ class GameAgent {
 			Node b = new Node(n.getX(), y);
 			Nodes.putIfAbsent(key, b);
 			b = Nodes.get(key);
-			checkCost(n, b, m);
+			checkactualCost(n, b, m);
 		}
 		//bottom node
 		if(n.getY() <= 580)
@@ -265,7 +271,7 @@ class GameAgent {
 			Node b = new Node(n.getX(), y);
 			Nodes.putIfAbsent(key, b);
 			b = Nodes.get(key);
-			checkCost(n, b, m);
+			checkactualCost(n, b, m);
 		}
 //		top left node
 		if(n.getX() >= 20 && n.getY() <= 580)
@@ -276,7 +282,7 @@ class GameAgent {
 			Node b = new Node(x, y);
 			Nodes.putIfAbsent(key, b);
 			b = Nodes.get(key);
-			checkCost(n, b, m);
+			checkactualCost(n, b, m);
 		}
 //		top right node
 		if(n.getX() <= 1180 && n.getY() <= 580)
@@ -287,7 +293,7 @@ class GameAgent {
 			Node b = new Node(x, y);
 			Nodes.putIfAbsent(key, b);
 			b = Nodes.get(key);
-			checkCost(n, b, m);
+			checkactualCost(n, b, m);
 		}
 //		Bottom right node
 		if(n.getX() <= 1180 && n.getY() >= 20)
@@ -298,7 +304,7 @@ class GameAgent {
 			Node b = new Node(x, y);
 			Nodes.putIfAbsent(key, b);
 			b = Nodes.get(key);
-			checkCost(n, b, m);
+			checkactualCost(n, b, m);
 		}
 //		Bottom left node
 		if(n.getX() >= 20 && n.getY() >= 20)
@@ -309,7 +315,7 @@ class GameAgent {
 			Node b = new Node(x, y);
 			Nodes.putIfAbsent(key, b);
 			b = Nodes.get(key);
-			checkCost(n, b, m);
+			checkactualCost(n, b, m);
 		}
 		
 		
@@ -317,23 +323,24 @@ class GameAgent {
 	
 	public void A(Node n, GameModel m, Node dest) {
 		n.setVisited(true);
-		n.setTotalcost(0);
+		n.setestimatedactualCost(0);
 		pQ.add(n);
 		
 		while(!pQ.isEmpty())
 		{
+			ctr++;
 			Node child = pQ.poll();
 //			System.out.println(pQ);
 			if(child.getX() == dest.getX() && child.getY() == dest.getY())
 			{
+				
 				st.push(child);
 				while(child.parent != null)
 				{
 					st.push(child.parent);
 					child = child.parent;
 				}
-				System.out.println(child.getX() + ", " + child.getY());
-
+				System.out.println("Counter:\t"+ ctr);
 //				System.out.println("FOUND");
 				break;
 			}
@@ -342,26 +349,30 @@ class GameAgent {
 		}
 	}
 	
-	public void checkCostA(Node parent,Node child, GameModel m)
+	public void checkactualCostA(Node parent,Node child, GameModel m)
 	{
-		double distance = (float)(Math.sqrt(Math.pow((parent.getX() - child.getX()),2) 
+		double distance = (Math.sqrt(Math.pow((parent.getX() - child.getX()),2) 
 				+ Math.pow((parent.getY() - child.getY()),2)));		
 		double speed = m.getSpeedOfTravel(child.getX(), child.getY());
-		double distanceToDest = (float)(Math.sqrt(Math.pow((child.getX() - destHold.getX()),2) 
+		double distanceToDest = (Math.sqrt(Math.pow((child.getX() - destHold.getX()),2) 
 				+ Math.pow((child.getY() - destHold.getY()),2)));
-		double costFromParent = distance/speed + parent.getTotalcost() + (.2 * distanceToDest);
+		double heuristic = (distanceToDest / 2.3);
+		double currentactualCost = distance/speed;
+		double actualCostToCurrent = distance/speed + parent.getactualCost();
 		
 		if(!pQ.contains(child) && child.isVisited() == false)
 		{
 //			System.out.println("true");
-			child.setTotalcost(costFromParent);
+			child.setestimatedactualCost(actualCostToCurrent + heuristic);
+			child.setactualCost(actualCostToCurrent ); 
 			child.setParent(parent);
 			pQ.add(child);
 		}
 			
-		else if(costFromParent < child.getTotalcost())
+		else if(actualCostToCurrent + heuristic < child.getestimatedactualCost())
 		{
-			child.setTotalcost(costFromParent);
+			child.setestimatedactualCost(actualCostToCurrent + heuristic);
+			child.setactualCost(actualCostToCurrent);
 			child.setParent(parent);
 		}
 		
@@ -378,7 +389,7 @@ class GameAgent {
 			Node b = new Node(x, n.getY());
 			Nodes.putIfAbsent(key, b);
 			b = Nodes.get(key);
-			checkCostA(n, b, m);
+			checkactualCostA(n, b, m);
 		}
 		//right node
 		if(n.getX() <= 1180)
@@ -389,7 +400,7 @@ class GameAgent {
 			Node b = new Node(x, n.getY());
 			Nodes.putIfAbsent(key, b);
 			b = Nodes.get(key);
-			checkCostA(n, b, m);
+			checkactualCostA(n, b, m);
 		}
 		//top node
 		if(n.getY() >= 20)
@@ -400,7 +411,7 @@ class GameAgent {
 			Node b = new Node(n.getX(), y);
 			Nodes.putIfAbsent(key, b);
 			b = Nodes.get(key);
-			checkCostA(n, b, m);
+			checkactualCostA(n, b, m);
 		}
 		//bottom node
 		if(n.getY() <= 580)
@@ -411,7 +422,7 @@ class GameAgent {
 			Node b = new Node(n.getX(), y);
 			Nodes.putIfAbsent(key, b);
 			b = Nodes.get(key);
-			checkCostA(n, b, m);
+			checkactualCostA(n, b, m);
 		}
 //		top left node
 		if(n.getX() >= 20 && n.getY() <= 580)
@@ -422,7 +433,7 @@ class GameAgent {
 			Node b = new Node(x, y);
 			Nodes.putIfAbsent(key, b);
 			b = Nodes.get(key);
-			checkCostA(n, b, m);
+			checkactualCostA(n, b, m);
 		}
 //		top right node
 		if(n.getX() <= 1180 && n.getY() <= 580)
@@ -433,7 +444,7 @@ class GameAgent {
 			Node b = new Node(x, y);
 			Nodes.putIfAbsent(key, b);
 			b = Nodes.get(key);
-			checkCostA(n, b, m);
+			checkactualCostA(n, b, m);
 		}
 //		Bottom right node
 		if(n.getX() <= 1180 && n.getY() >= 20)
@@ -444,7 +455,7 @@ class GameAgent {
 			Node b = new Node(x, y);
 			Nodes.putIfAbsent(key, b);
 			b = Nodes.get(key);
-			checkCostA(n, b, m);
+			checkactualCostA(n, b, m);
 		}
 //		Bottom left node
 		if(n.getX() >= 20 && n.getY() >= 20)
@@ -455,7 +466,7 @@ class GameAgent {
 			Node b = new Node(x, y);
 			Nodes.putIfAbsent(key, b);
 			b = Nodes.get(key);
-			checkCostA(n, b, m);
+			checkactualCostA(n, b, m);
 		}
 		
 		
